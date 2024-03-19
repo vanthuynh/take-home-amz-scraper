@@ -1,4 +1,5 @@
 import time
+import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -6,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
-import json
+from amazoncaptcha import AmazonCaptcha
 from product import Product
 
 
@@ -39,19 +40,23 @@ class AmazonProductScraper:
                 # Wait for the elements to be present before proceeding
                 wait = WebDriverWait(self.driver, 10)
                 product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-medium a-color-base a-text-normal']")))
-                product_prices = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
                 product_ratings = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-icon-alt']")))
                 product_asin = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 's-result-item s-asin')]")))
-                # product_asin = self.driver.find_elements(By.XPATH, "//img[@class='s-image']")
+                price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
+                price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
                 print("Product elements found successfully.")
             except TimeoutException as e:
                 print(f"Error finding product elements: {e}")
                 continue
 
-            for title, price, rating, image in zip(product_titles, product_prices, product_ratings, product_asin):
+            for title, dollar, cent, rating, image in zip(product_titles, price_dollar, price_cent, product_ratings, product_asin):
                 try:
                     title_text = title.text
-                    price_text = price.text
+                    if dollar != [] and cent != []:
+                        price = '.'.join([dollar.text, cent.text])
+                    else:
+                        price = 0
+                    price_text = price
                     rating_text = rating.get_attribute("innerHTML")
                     asin = image.get_attribute("data-asin")
 
