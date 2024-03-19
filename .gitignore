@@ -3,7 +3,7 @@
 /__pycache__
 
 # Files
-*.json
+/*.json
 *.csv
 
 # Executables
