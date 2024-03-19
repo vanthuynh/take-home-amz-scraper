@@ -100,7 +100,7 @@ class AmazonProductScraper:
                         notification.notify(
                             title = 'Price Drop Alert',
                             message = f"from {str(self.most_recent_price)} to {price_text}",
-                            app_icon = '/img/sale-alert.ico'
+                            app_icon = './img/sale-alert.ico'
                         )
                         self.most_recent_price = price_total
 
@@ -140,14 +140,14 @@ class AmazonProductScraper:
         print(f"Products scraped have been saved to '{LOG_FILE}'")
 
     def save_to_csv(self, products):
-        # file_name = f"{query.replace(' ', '_')}.json"
+        headerList = ['Ipad Model', 'Price']
         df = pd.DataFrame(
         {
             "Title": [products[-1].title],
             "Price": [products[-1].price]
             # "Dimensions": dimensions
         })
-        df.to_csv(CSV_FILE, mode='a', index=False, header=not os.path.exists(CSV_FILE))
+        df.to_csv(CSV_FILE, mode='a', index=False, header=headerList)
         print(f"Products scraped have been saved to '{CSV_FILE}'")
 
     def close_browser(self):
