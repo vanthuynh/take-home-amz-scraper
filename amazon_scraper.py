@@ -53,40 +53,42 @@ class AmazonProductScraper:
         most_recent_price = float('inf')
         refresh_once = False
         product_titles, price_dollar, price_cent = None, None, None
-
-        if refresh_once == False:
-            self.driver.get(url)
-            refresh_once = True
-        else:
-            self.driver.navigate().refresh()
-        try:
-            # Wait for the elements to be present before proceeding
-            wait = WebDriverWait(self.driver, 10)
-            product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
-            price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
-            price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
-            print("Product elements found successfully.")
-        except TimeoutException as e:
-            print(f"Error finding product elements: {e}")
-
-        for title, dollar, cent in zip(product_titles, price_dollar, price_cent):
+        while KEEP_TRACKING:
+            if refresh_once == False:
+                self.driver.get(url)
+                refresh_once = True
+            else:
+                self.driver.refresh()
             try:
-                title_text = title.text
-                if dollar != '' and cent != '':
-                    price_text = '.'.join([dollar.text, cent.text])
-                else:
-                    price_text = 0
+                # Wait for the elements to be present before proceeding
+                wait = WebDriverWait(self.driver, 20)
+                product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
+                price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
+                price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
+                print("Product elements found successfully.")
+            except TimeoutException as e:
+                print(f"Error finding product elements: {e}")
+                break
 
-                # compare previous price
-                most_recent_price = min(float(price_text), most_recent_price)
+            for title, dollar, cent in zip(product_titles, price_dollar, price_cent):
+                try:
+                    title_text = title.text
+                    if dollar != '' and cent != '':
+                        price_text = '.'.join([dollar.text, cent.text])
+                    else:
+                        price_text = 0
 
-                time_scraped = datetime.now()
+                    # compare previous price
+                    most_recent_price = min(float(price_text), most_recent_price)
+                    print(most_recent_price)
 
-                product = Product(title_text, price_text, time_scraped)
-                products.append(product)
-            except Exception as ex:
-                print(f"Error occurred while extracting product information: {ex}")
-                continue
+                    time_scraped = datetime.now()
+
+                    product = Product(title_text, price_text, time_scraped)
+                    products.append(product)
+                except Exception as ex:
+                    print(f"Error occurred while extracting product information: {ex}")
+                    continue
 
             # Save products to JSON file
             self.save_to_json(products)
@@ -95,10 +97,10 @@ class AmazonProductScraper:
             self.save_to_csv(products)
 
             ### Wait for certain minutes before reloading page
-            # time.sleep(self.repeat_time)
+            time.sleep(self.repeat_time)
 
-            # return products
-            return products
+        # return products
+        return products
 
     def save_to_json(self, products):
         # file_name = f"{query.replace(' ', '_')}.json"
