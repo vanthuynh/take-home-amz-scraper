@@ -28,6 +28,16 @@ class AmazonProductScraper:
         # Navigate to Amazon website
         url = "https://www.amazon.com/"
         self.driver.get(url)
+        time.sleep(2) # Wait for 2 seconds for the page to fully load
+
+        ### Begin solving captcha challenge
+        link = self.driver.find_element(By.XPATH, "//div[@class = 'a-row a-text-center']//img").get_attribute('src')
+        captcha = AmazonCaptcha.fromlink(link)
+        captcha_value = AmazonCaptcha.solve(captcha)
+        input_field = self.driver.find_element(By.ID, "captchacharacters").send_keys(captcha_value)
+        button = self.driver.find_element(By.CLASS_NAME, "a-button-text")
+        button.click()
+
         time.sleep(5)  # Wait for 5 seconds for the page to fully load
 
     def scrape_product_details(self, query, num_pages=1):
@@ -52,7 +62,7 @@ class AmazonProductScraper:
             for title, dollar, cent, rating, image in zip(product_titles, price_dollar, price_cent, product_ratings, product_asin):
                 try:
                     title_text = title.text
-                    if dollar != [] and cent != []:
+                    if dollar != '' and cent != '':
                         price = '.'.join([dollar.text, cent.text])
                     else:
                         price = 0
