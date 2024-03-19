@@ -1,0 +1,9 @@
+# Folders
+/venv
+/__pycache__
+
+# Files
+*.json
+
+# Executables
+*.exe
