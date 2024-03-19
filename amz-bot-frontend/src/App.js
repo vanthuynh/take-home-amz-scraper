@@ -8,31 +8,60 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  BarChart,
-  Bar,
 } from "recharts";
 
 const App = () => {
   const [data, setData] = useState([]);
   const [fileSelected, setFileSelected] = useState(false);
 
+  // const handleFileChange = (event) => {
+  //   const file = event.target.files[0];
+  //   const reader = new FileReader();
+
+  //   reader.onload = (e) => {
+  //     const contents = e.target.result;
+  //     const csvHeader = contents.slice(0, contents.indexOf("\n")).split(",");
+  //     console.log(csvHeader)
+  //     const csvRows = contents.slice(contents.indexOf("\n") + 1).split("\n");
+  //     console.log(csvRows)
+
+  //     const array = csvRows.map(i => {
+  //       const values = i.split(",");
+  //       const obj = csvHeader.reduce((object, header, index) => {
+  //         object[header] = values[index];
+  //         return object;
+  //       }, {});
+  //       return obj;
+  //     });
+
+  //     setData(array);
+  //   };
+
+  //   if (file) {
+  //     reader.readAsText(file);
+  //     setFileSelected(true);
+  //   }
+  // };
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     const reader = new FileReader();
 
     reader.onload = (e) => {
       const contents = e.target.result;
-      const lines = contents.split("\n");
-      const header = lines[0].split(",");
+      const lines = contents.split("\n");   // retrieve first header row
+      const header = lines[0].split(",");   // got all the headers
       const parsedData = [];
-
+      var regex = /("[^"]+"|[^,]+)*/g;
       for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].split(",");
+        var line = [lines[i]].map(function(lineStr) {
+          return lineStr.split(regex);
+        });
         const item = {};
 
-        for (let j = 0; j < header.length; j++) {
+        for (let j = 0, x = 1; j < header.length; j++, x += 2) {
           const key = header[j].trim();
-          const value = line[j].trim();
+          // console.log(line[0][x])
+          const value = line[0][x];
 
           item[key] = value;
         }
@@ -81,17 +110,6 @@ const App = () => {
                 strokeWidth="3"
               />
             </LineChart>
-          </div>
-
-          <div className="chart">
-            <BarChart width={500} height={300} data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="Category" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="Value" fill="#F94141" />
-            </BarChart>
           </div>
         </div>
       )}

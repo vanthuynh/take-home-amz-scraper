@@ -21,10 +21,10 @@ SEND_MAIL = True
 KEEP_TRACKING = True
 
 # Variables to be configured
-DEFAULT_TIME_FOR_REPETITION = 120   # repeat time is 5 minutes by default (can be configured from user input)
-SENDER_EMAIL = "creamsodapop20s@gmail.com"
-RECEIVER_EMAIL = "creamsodapop20s@gmail.com"
-SENDER_PASSWORD = "Creamsodapop9!"
+DEFAULT_TIME_FOR_REPETITION = 60   # repeat time is 5 minutes by default (can be configured from user input)
+SENDER_EMAIL = "johndoe@gmail.com"
+RECEIVER_EMAIL = "johndoe@gmail.com"
+SENDER_PASSWORD = "XXXXXXXXXXXX"
 
 
 class AmazonProductScraper:
@@ -61,17 +61,16 @@ class AmazonProductScraper:
 
     def scrape_product_details(self, url):
         products = []
-        refresh_once = False
+        refresh_once, write_header = False, True
         product_titles, price_dollar, price_cent = None, None, None
         while KEEP_TRACKING:
             if refresh_once == False:
                 self.driver.get(url)
-                refresh_once = True
             else:
                 self.driver.refresh()
             try:
                 # Wait for the elements to be present before proceeding
-                wait = WebDriverWait(self.driver, 20)
+                wait = WebDriverWait(self.driver, 10)
                 product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
                 price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
                 price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
@@ -116,10 +115,13 @@ class AmazonProductScraper:
             self.save_to_json(products)
 
             # Update CSV file
-            self.save_to_csv(products)
+            self.save_to_csv(products, write_header)
+
+            # Mark repetition
+            refresh_once, write_header = True, False
 
             ### Wait for certain minutes before reloading page
-            time.sleep(self.repeat_time)
+            time.sleep(5)
 
         # return products
         return products
@@ -139,15 +141,16 @@ class AmazonProductScraper:
             json.dump([{'title': product.title, 'price': product.price, 'scraping_timestamp': str(product.scraping_timestamp)} for product in products], f)
         print(f"Products scraped have been saved to '{LOG_FILE}'")
 
-    def save_to_csv(self, products):
-        headerList = ['Ipad Model', 'Price']
+    def save_to_csv(self, products, write_header = True):
+        mode = 'w' if write_header else 'a'
+        headerList = ['Ipad Model', 'Price', 'Timestamp'] if write_header else False
         df = pd.DataFrame(
         {
             "Title": [products[-1].title],
-            "Price": [products[-1].price]
-            # "Dimensions": dimensions
+            "Price": [products[-1].price],
+            "Timestamp": [products[-1].scraping_timestamp]
         })
-        df.to_csv(CSV_FILE, mode='a', index=False, header=headerList)
+        df.to_csv(CSV_FILE, mode=mode, index=False, header=headerList)
         print(f"Products scraped have been saved to '{CSV_FILE}'")
 
     def close_browser(self):
