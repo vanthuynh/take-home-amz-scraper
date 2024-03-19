@@ -21,7 +21,7 @@ SEND_MAIL = True
 KEEP_TRACKING = True
 
 # Variables to be configured
-DEFAULT_TIME_FOR_REPETITION = 60   # repeat time is 5 minutes by default (can be configured from user input)
+DEFAULT_TIME_FOR_REPETITION = 300   # repeat time is 5 minutes by default (can be configured from user input)
 SENDER_EMAIL = "johndoe@gmail.com"
 RECEIVER_EMAIL = "johndoe@gmail.com"
 SENDER_PASSWORD = "XXXXXXXXXXXX"
