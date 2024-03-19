@@ -121,7 +121,7 @@ class AmazonProductScraper:
             refresh_once, write_header = True, False
 
             ### Wait for certain minutes before reloading page
-            time.sleep(5)
+            time.sleep(self.repeat_time)
 
         # return products
         return products
