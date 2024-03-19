@@ -40,54 +40,53 @@ class AmazonProductScraper:
 
         time.sleep(5)  # Wait for 5 seconds for the page to fully load
 
-    def scrape_product_details(self, query, num_pages=1):
+    def scrape_product_details(self, url):
         products = []
 
-        for page in range(1, num_pages + 1):
-            # self.driver.get(f"https://www.amazon.com/s?k={query.replace(' ', '+')}&page={page}")
-            self.driver.get("https://www.amazon.com/2021-Apple-10-2-inch-iPad-Wi-Fi/dp/B09G9FPHY6")
+        self.driver.get(url)
 
+        try:
+            # Wait for the elements to be present before proceeding
+            wait = WebDriverWait(self.driver, 10)
+            product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
+            # product_ratings = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-base a-color-base']")))
+            # product_asin = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@id, 'averageCustomerReviews')]")))
+            price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
+            price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
+            print("Product elements found successfully.")
+        except TimeoutException as e:
+            print(f"Error finding product elements: {e}")
+
+        for title, dollar, cent in zip(product_titles, price_dollar, price_cent):
             try:
-                # Wait for the elements to be present before proceeding
-                wait = WebDriverWait(self.driver, 10)
-                product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
-                product_ratings = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-base a-color-base']")))
-                product_asin = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@id, 'averageCustomerReviews')]")))
-                price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
-                price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
-                print("Product elements found successfully.")
-            except TimeoutException as e:
-                print(f"Error finding product elements: {e}")
+                title_text = title.text
+                if dollar != '' and cent != '':
+                    price = '.'.join([dollar.text, cent.text])
+                else:
+                    price = 0
+                price_text = price
+                # rating_text = rating.get_attribute("innerHTML")
+                # asin = image.get_attribute("data-asin")
+                time_scraped = datetime.now()
+
+                product = Product(title_text, price_text, time_scraped)
+                products.append(product)
+            except Exception as ex:
+                print(f"Error occurred while extracting product information: {ex}")
                 continue
 
-            for title, dollar, cent, rating, image in zip(product_titles, price_dollar, price_cent, product_ratings, product_asin):
-                try:
-                    title_text = title.text
-                    if dollar != '' and cent != '':
-                        price = '.'.join([dollar.text, cent.text])
-                    else:
-                        price = 0
-                    price_text = price
-                    rating_text = rating.get_attribute("innerHTML")
-                    asin = image.get_attribute("data-asin")
-
-                    product = Product(title_text, price_text, asin, rating_text, datetime.now())
-                    products.append(product)
-                except Exception as ex:
-                    print(f"Error occurred while extracting product information: {ex}")
-                    continue
-
         # Save products to JSON file
-        self.save_to_json(products, query)
+        self.save_to_json(products)
 
         return products
 
-    def save_to_json(self, products, query):
-        file_name = f"{query.replace(' ', '_')}.json"
+    def save_to_json(self, products):
+        # file_name = f"{query.replace(' ', '_')}.json"
+        file_name = "res.json"
         with open(file_name, "w") as f:
-            json.dump([{'title': product.title, 'price': product.price, 'asin': product.asin, 'rating': product.rating, 'scraping_timestamp': str(product.scraping_timestamp)} for product in products], f)
+            json.dump([{'title': product.title, 'price': product.price, 'scraping_timestamp': str(product.scraping_timestamp)} for product in products], f)
 
-        print(f"Products scraped for '{query}' have been saved to '{file_name}'")
+        print(f"Products scraped have been saved to '{file_name}'")
 
     def close_browser(self):
         self.driver.quit()
