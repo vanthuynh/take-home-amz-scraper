@@ -1,5 +1,8 @@
 import time
 import json
+import os
+import math
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -10,10 +13,15 @@ from datetime import datetime
 from amazoncaptcha import AmazonCaptcha
 from product import Product
 
+LOG_FILE = "res.json"
+CSV_FILE = "DATA.csv"
+SEND_MAIL = True
+KEEP_TRACKING = True
 
 class AmazonProductScraper:
     def __init__(self):
         self.driver = None
+        self.repeat_time = 30      # repeat time will be 5 minutes
 
     def open_browser(self):
         options = Options()
@@ -42,15 +50,19 @@ class AmazonProductScraper:
 
     def scrape_product_details(self, url):
         products = []
+        most_recent_price = float('inf')
+        refresh_once = False
+        product_titles, price_dollar, price_cent = None, None, None
 
-        self.driver.get(url)
-
+        if refresh_once == False:
+            self.driver.get(url)
+            refresh_once = True
+        else:
+            self.driver.navigate().refresh()
         try:
             # Wait for the elements to be present before proceeding
             wait = WebDriverWait(self.driver, 10)
             product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
-            # product_ratings = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-base a-color-base']")))
-            # product_asin = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@id, 'averageCustomerReviews')]")))
             price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
             price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
             print("Product elements found successfully.")
@@ -61,12 +73,13 @@ class AmazonProductScraper:
             try:
                 title_text = title.text
                 if dollar != '' and cent != '':
-                    price = '.'.join([dollar.text, cent.text])
+                    price_text = '.'.join([dollar.text, cent.text])
                 else:
-                    price = 0
-                price_text = price
-                # rating_text = rating.get_attribute("innerHTML")
-                # asin = image.get_attribute("data-asin")
+                    price_text = 0
+
+                # compare previous price
+                most_recent_price = min(float(price_text), most_recent_price)
+
                 time_scraped = datetime.now()
 
                 product = Product(title_text, price_text, time_scraped)
@@ -75,18 +88,34 @@ class AmazonProductScraper:
                 print(f"Error occurred while extracting product information: {ex}")
                 continue
 
-        # Save products to JSON file
-        self.save_to_json(products)
+            # Save products to JSON file
+            self.save_to_json(products)
 
-        return products
+            # Update CSV file
+            self.save_to_csv(products)
+
+            ### Wait for certain minutes before reloading page
+            # time.sleep(self.repeat_time)
+
+            # return products
+            return products
 
     def save_to_json(self, products):
         # file_name = f"{query.replace(' ', '_')}.json"
-        file_name = "res.json"
-        with open(file_name, "w") as f:
+        with open(LOG_FILE, "w") as f:
             json.dump([{'title': product.title, 'price': product.price, 'scraping_timestamp': str(product.scraping_timestamp)} for product in products], f)
+        print(f"Products scraped have been saved to '{LOG_FILE}'")
 
-        print(f"Products scraped have been saved to '{file_name}'")
+    def save_to_csv(self, products):
+        # file_name = f"{query.replace(' ', '_')}.json"
+        df = pd.DataFrame(
+        {
+            "Title": [products[-1].title],
+            "Price": [products[-1].price]
+            # "Dimensions": dimensions
+        })
+        df.to_csv(CSV_FILE, mode='a', index=False, header=not os.path.exists(CSV_FILE))
+        print(f"Products scraped have been saved to '{CSV_FILE}'")
 
     def close_browser(self):
         self.driver.quit()

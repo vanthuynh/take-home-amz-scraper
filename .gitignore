@@ -4,6 +4,7 @@
 
 # Files
 *.json
+*.csv
 
 # Executables
 *.exe
