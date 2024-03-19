@@ -44,14 +44,15 @@ class AmazonProductScraper:
         products = []
 
         for page in range(1, num_pages + 1):
-            self.driver.get(f"https://www.amazon.com/s?k={query.replace(' ', '+')}&page={page}")
+            # self.driver.get(f"https://www.amazon.com/s?k={query.replace(' ', '+')}&page={page}")
+            self.driver.get("https://www.amazon.com/2021-Apple-10-2-inch-iPad-Wi-Fi/dp/B09G9FPHY6")
 
             try:
                 # Wait for the elements to be present before proceeding
                 wait = WebDriverWait(self.driver, 10)
-                product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-medium a-color-base a-text-normal']")))
-                product_ratings = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-icon-alt']")))
-                product_asin = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 's-result-item s-asin')]")))
+                product_titles = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-large product-title-word-break']")))
+                product_ratings = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-size-base a-color-base']")))
+                product_asin = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@id, 'averageCustomerReviews')]")))
                 price_dollar = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-whole']")))
                 price_cent = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//span[@class='a-price-fraction']")))
                 print("Product elements found successfully.")
