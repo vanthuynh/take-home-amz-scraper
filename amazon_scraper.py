@@ -1,7 +1,7 @@
 import time
 import json
 import os
-import math
+import smtplib
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -11,17 +11,28 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 from amazoncaptcha import AmazonCaptcha
+from plyer import notification
 from product import Product
 
+# Global Variables
 LOG_FILE = "res.json"
 CSV_FILE = "DATA.csv"
 SEND_MAIL = True
 KEEP_TRACKING = True
 
+# Variables to be configured
+DEFAULT_TIME_FOR_REPETITION = 120   # repeat time is 5 minutes by default (can be configured from user input)
+SENDER_EMAIL = "creamsodapop20s@gmail.com"
+RECEIVER_EMAIL = "creamsodapop20s@gmail.com"
+SENDER_PASSWORD = "Creamsodapop9!"
+
+
 class AmazonProductScraper:
     def __init__(self):
         self.driver = None
-        self.repeat_time = 30      # repeat time will be 5 minutes
+        self.repeat_time = DEFAULT_TIME_FOR_REPETITION
+        self.lowest_price = float('inf')
+        self.most_recent_price = float('inf')
 
     def open_browser(self):
         options = Options()
@@ -50,7 +61,6 @@ class AmazonProductScraper:
 
     def scrape_product_details(self, url):
         products = []
-        most_recent_price = float('inf')
         refresh_once = False
         product_titles, price_dollar, price_cent = None, None, None
         while KEEP_TRACKING:
@@ -73,16 +83,28 @@ class AmazonProductScraper:
             for title, dollar, cent in zip(product_titles, price_dollar, price_cent):
                 try:
                     title_text = title.text
+                    price_text = ''
                     if dollar != '' and cent != '':
                         price_text = '.'.join([dollar.text, cent.text])
                     else:
-                        price_text = 0
+                        price_text = '0'
+                    price_total = float(price_text)
 
-                    # compare previous price
-                    most_recent_price = min(float(price_text), most_recent_price)
-                    print(most_recent_price)
+                    # compare with lowest price so far
+                    self.lowest_price = min(price_total, self.lowest_price)
 
-                    time_scraped = datetime.now()
+                    # compare current price w/ previous price to send email
+                    if self.most_recent_price > price_total:
+                        # if SEND_MAIL:
+                        #     self.send_mail(price_total, self.most_recent_price)
+                        notification.notify(
+                            title = 'Price Drop Alert',
+                            message = f"from {str(self.most_recent_price)} to {price_text}",
+                            app_icon = '/img/sale-alert.ico'
+                        )
+                        self.most_recent_price = price_total
+
+                    time_scraped = datetime.now()   # collect time when price was scraped
 
                     product = Product(title_text, price_text, time_scraped)
                     products.append(product)
@@ -101,6 +123,15 @@ class AmazonProductScraper:
 
         # return products
         return products
+
+    def send_mail(new_price, previous_price):
+        subject = "Price Drop Alert"
+        message = f"from {str(previous_price)} to {str(new_price)}"
+        message_text = f"Subject:{subject}\n\n{message}"
+        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+            smtp.starttls()
+            smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
+            smtp.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, message_text)
 
     def save_to_json(self, products):
         # file_name = f"{query.replace(' ', '_')}.json"

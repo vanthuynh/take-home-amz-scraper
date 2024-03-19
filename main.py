@@ -9,7 +9,7 @@ def main():
     scraper.open_browser()
 
     # retrieve target product url (can be ask from user input)
-    product_url = "https://www.amazon.com/dp/B09G9FW785"
+    product_url = "https://www.amazon.com/dp/B09V3JJT5D"
 
     try:
         scraper.scrape_product_details(product_url)
